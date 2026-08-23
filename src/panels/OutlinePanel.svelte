@@ -14,6 +14,7 @@
   let { headings, lang, contentRoot = null }: Props = $props()
 
   let activeId = $state<string | null>(null)
+  let listEl: HTMLUListElement | null = $state(null)
 
   $effect(() => {
     if (!contentRoot || headings.length === 0) return
@@ -30,6 +31,29 @@
     return teardown
   })
 
+  // Keep the active outline item in view inside the side panel's own scroller
+  // (.md-panel is overflow-y:auto). Without this the highlight updates but
+  // scrolls off-screen for long documents, so users have to manually scroll
+  // the outline to follow along.
+  $effect(() => {
+    if (!activeId || !listEl) return
+    const item = listEl.querySelector<HTMLLIElement>(
+      'li.is-active',
+    )
+    if (!item) return
+    const panel = listEl.closest<HTMLElement>('.md-panel')
+    if (!panel) return
+    // Only auto-scroll while the user isn't actively scrolling the panel —
+    // `scroll-spy` causes tiny scroll movements that would otherwise stomp
+    // manual scrolling.
+    const isPanelFocused =
+      panel.matches(':hover') || panel.contains(document.activeElement)
+    item.scrollIntoView({
+      block: 'nearest',
+      behavior: isPanelFocused ? 'auto' : 'smooth',
+    })
+  })
+
   function jump(ev: MouseEvent, id: string) {
     ev.preventDefault()
     const el = document.getElementById(id)
@@ -43,7 +67,7 @@
 {#if headings.length === 0}
   <div class="md-warning">{t(lang, 'outline.empty')}</div>
 {:else}
-  <ul class="md-outline">
+  <ul class="md-outline" bind:this={listEl}>
     {#each headings as h (h.id)}
       <li data-level={h.level} class:is-active={activeId === h.id}>
         <a href={`#${h.id}`} onclick={(e) => jump(e, h.id)}>{h.text}</a>
