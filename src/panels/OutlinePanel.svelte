@@ -58,7 +58,11 @@
     ev.preventDefault()
     const el = document.getElementById(id)
     if (!el) return
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Instant jump — matches md-reader's window.scrollTo(0, top) behavior.
+    // `scrollIntoView({ behavior: 'smooth' })` was triggering a noticeable
+    // animated scroll on long documents; users expect an outline click to
+    // teleport to the section.
+    el.scrollIntoView({ block: 'start' })
     history.replaceState(null, '', `#${id}`)
   }
 </script>
