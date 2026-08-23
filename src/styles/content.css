@@ -88,12 +88,19 @@ body.mdr-active > pre {
 /* ============ Side panel ============ */
 
 .md-side {
-  width: 280px;
+  /* `--mdr-side-width` is set inline on `.md-app` from the saved setting
+     (and updated live while dragging) so the user-resizable width sticks
+     across reloads. Falls back to the original 280px if the variable is
+     unset (e.g. some legacy host page). */
+  width: var(--mdr-side-width, 280px);
   border-right: 1px solid var(--mdr-border);
   background: var(--mdr-panel-bg);
   color: var(--mdr-panel-fg);
   display: flex;
   flex-direction: column;
+  /* `sticky` keeps the sidebar pinned to the top during content scroll and
+     also establishes a containing block for the absolutely-positioned
+     `.md-resize` handle on the right edge. */
   position: sticky;
   top: 0;
   height: 100vh;
@@ -101,9 +108,10 @@ body.mdr-active > pre {
 }
 
 .md-app[data-panel='none'] .md-side {
-  width: 56px;
-  align-items: center;
-  padding-top: 10px;
+  /* Side panel fully collapsed: drop the column so .md-main takes the whole row. */
+  width: 0;
+  border-right: none;
+  background: transparent;
 }
 
 /* Single expand button for collapsed state */
@@ -125,6 +133,118 @@ body.mdr-active > pre {
 .md-expand:hover {
   background: var(--mdr-accent-soft);
   color: var(--mdr-fg);
+}
+
+/* Collapse-side button: shown in the expanded toolbar so the user can
+  hide the panel without reaching for the keyboard shortcut. The visual
+  style lives in Toolbar.svelte so it shares the toolbar row layout. */
+
+/* Floating sidebar toggle, pinned to the viewport so it stays visible
+   while the document is scrolled. Its horizontal position follows the
+   sidebar width while the panel is open, so it sits flush with the main
+   column's left edge and never overlaps the toolbar buttons inside the
+   sidebar. When the panel is collapsed, the main column fills the
+   viewport and the toggle moves to the main column's content inset
+   (top-left of the rendered Markdown), avoiding the host browser's
+   chrome at the very top-left corner. */
+.md-side-toggle {
+  /* GitHub-style: only the floating ☰ button shows when the sidebar is
+     collapsed. When the sidebar is open, an ✕ button lives inside the
+     sidebar header instead. */
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 40px;
+  z-index: 2147483645;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--mdr-muted);
+  background: var(--mdr-toolbar-bg);
+  border: 1px solid var(--mdr-border);
+  border-radius: 8px;
+  box-shadow: var(--mdr-shadow);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s;
+}
+.md-side-toggle:hover {
+  opacity: 1;
+  color: var(--mdr-fg);
+}
+.md-app[data-panel='none'] .md-side-toggle {
+  display: inline-flex;
+}
+
+/* Sidebar header: toolbar tabs + a small ✕ button on the right edge,
+   mirroring GitHub's collapsed-sidebar affordance. */
+.md-side-head {
+  display: flex;
+  align-items: stretch;
+}
+.md-side-head > .md-toolbar {
+  flex: 1;
+  border-bottom: none;
+}
+.md-side-close {
+  flex: 0 0 auto;
+  width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--mdr-muted);
+  background: transparent;
+  border: none;
+  border-left: 1px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.md-side-close:hover {
+  color: var(--mdr-fg);
+  background: var(--mdr-accent-soft);
+}
+.md-app[data-panel='none'] .md-side-close {
+  /* The close button lives inside `.md-side`, which has width:0 when the
+     panel is collapsed — keep it hidden defensively in case the layout
+     ever changes. */
+  display: none;
+}
+
+/* Draggable right edge of the sidebar. Wide invisible hit area plus a
+   thin visual indicator so users discover it's interactive. */
+.md-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  touch-action: none;
+  z-index: 1;
+}
+.md-resize::after {
+  /* Visual "grip" line, only visible on hover / while dragging. */
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 2px;
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.15s;
+}
+.md-resize:hover::after,
+.md-app.is-resizing .md-resize::after {
+  background: var(--mdr-accent);
 }
 
 .md-toolbar {

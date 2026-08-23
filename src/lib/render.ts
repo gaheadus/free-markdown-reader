@@ -1,7 +1,7 @@
 // Markdown render pipeline: builds a markdown-it instance configured with all
 // requested plugins and a highlight.js code-block renderer.
 
-import MarkdownIt from 'markdown-it'
+import MarkdownIt, { type PluginSimple, type PluginWithParams } from 'markdown-it'
 import hljs from 'highlight.js'
 import abbr from 'markdown-it-abbr'
 import container from 'markdown-it-container'
@@ -67,23 +67,32 @@ export function createRenderer(settings: Settings) {
     aotolabel: true,
   })
 
-  if (flags.emoji) md.use(emoji)
-  if (flags.sub) md.use(sub)
-  if (flags.sup) md.use(sup)
-  if (flags.ins) md.use(ins)
-  if (flags.mark) md.use(mark)
-  if (flags.abbr) md.use(abbr)
-  if (flags.deflist) md.use(deflist)
-  if (flags.footnote) md.use(footnote)
-  if (flags.taskLists) md.use(taskLists, { enabled: true, label: true })
-  if (flags.tableOfContents) md.use(toc, { containerClass: 'md-toc' })
+  if (flags.emoji) md.use(emoji as unknown as PluginSimple)
+  if (flags.sub) md.use(sub as unknown as PluginSimple)
+  if (flags.sup) md.use(sup as unknown as PluginSimple)
+  if (flags.ins) md.use(ins as unknown as PluginSimple)
+  if (flags.mark) md.use(mark as unknown as PluginSimple)
+  if (flags.abbr) md.use(abbr as unknown as PluginSimple)
+  if (flags.deflist) md.use(deflist as unknown as PluginSimple)
+  if (flags.footnote) md.use(footnote as unknown as PluginSimple)
+  if (flags.taskLists) md.use(taskLists as unknown as PluginSimple, { enabled: true, label: true })
+  if (flags.tableOfContents) md.use(toc as unknown as PluginSimple, { containerClass: 'md-toc' })
   if (flags.container) {
     for (const name of ['info', 'warning', 'tip', 'danger', 'details']) {
-      md.use(container, name)
+      // `@types/markdown-it-container@4` and `@types/markdown-it-footnote`
+      // use CJS namespace imports of `markdown-it`, so TS resolves their
+      // `MarkdownIt` type to the package's CJS entry (`dist/index.d.ts`).
+      // The rest of the codebase uses the ESM entry (`lib/index.d.ts`),
+      // making the two `MarkdownIt` types nominally distinct. The runtime
+      // contracts are unchanged; cast through `unknown` so TS treats every
+      // third-party plugin as `PluginSimple` / `PluginWithParams` from our
+      // own type universe and stops cross-comparing the two `MarkdownIt`
+      // type trees.
+      md.use(container as unknown as PluginWithParams, name)
     }
   }
-  if (flags.alert) md.use(alert)
-  if (flags.katex) md.use(katex, { throwOnError: false, strict: false, output: 'html' })
+  if (flags.alert) md.use(alert as unknown as PluginSimple)
+  if (flags.katex) md.use(katex as unknown as PluginSimple, { throwOnError: false, strict: false, output: 'html' })
 
   // Heading slugs + anchor links. Runs after plugins so plugin-injected
   // headings (e.g. footnotes) get IDs too.

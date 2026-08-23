@@ -19,6 +19,10 @@ const en: Dict = {
   'panel.outline': 'Outline',
   'panel.search': 'Search',
   'panel.settings': 'Settings',
+  'panel.collapse': 'Hide side panel',
+  'panel.expand': 'Show side panel',
+  'panel.collapseSymbol': '\u00d7',
+  'panel.expandSymbol': '\u2630',
 
   // Outline
   'outline.empty': 'No headings in this document.',
@@ -80,6 +84,10 @@ const zh_CN: Dict = {
   'panel.outline': '大纲',
   'panel.search': '搜索',
   'panel.settings': '设置',
+  'panel.collapse': '隐藏侧栏',
+  'panel.expand': '显示侧栏',
+  'panel.collapseSymbol': '\u00d7',
+  'panel.expandSymbol': '\u2630',
 
   'outline.empty': '该文档没有标题。',
 

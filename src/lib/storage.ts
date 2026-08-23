@@ -34,7 +34,14 @@ export interface Settings {
   language: Lang
   panel: PanelKind
   mdPlugins: Record<MdPluginKey, boolean>
+  /** Sidebar width in pixels. Persisted so user-chosen size survives reloads. */
+  sideWidth: number
 }
+
+// Bounds for the user-resizable sidebar width.
+export const SIDE_WIDTH_MIN = 160
+export const SIDE_WIDTH_MAX = 600
+export const SIDE_WIDTH_DEFAULT = 280
 
 // Cache detected language so first load is instant
 const detected = detectLanguage()
@@ -46,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'auto',
   language: detected,
   panel: 'outline',
+  sideWidth: SIDE_WIDTH_DEFAULT,
   mdPlugins: Object.fromEntries(
     MD_PLUGIN_KEYS.map((k) => [k, true]),
   ) as Record<MdPluginKey, boolean>,
@@ -83,11 +91,24 @@ export function onSettingsChanged(
 
 function mergeDefaults(raw: Settings | null): Settings {
   if (!raw) return DEFAULT_SETTINGS
+  // Defensive: clamp sideWidth from older storage records that may carry an
+  // out-of-range value (or none at all, prior to this feature shipping).
+  const sw =
+    typeof raw.sideWidth === 'number' && Number.isFinite(raw.sideWidth)
+      ? Math.min(SIDE_WIDTH_MAX, Math.max(SIDE_WIDTH_MIN, raw.sideWidth))
+      : SIDE_WIDTH_DEFAULT
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
+    sideWidth: sw,
     mdPlugins: { ...DEFAULT_SETTINGS.mdPlugins, ...(raw.mdPlugins ?? {}) },
   }
+}
+
+/** Clamp a candidate width into the allowed range for the resizable sidebar. */
+export function clampSideWidth(width: number): number {
+  if (!Number.isFinite(width)) return SIDE_WIDTH_DEFAULT
+  return Math.min(SIDE_WIDTH_MAX, Math.max(SIDE_WIDTH_MIN, Math.round(width)))
 }
 
 /** Whether the extension is permitted to access file:// URLs. */

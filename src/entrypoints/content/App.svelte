@@ -8,6 +8,9 @@
   import {
     onSettingsChanged,
     setSettings,
+    clampSideWidth,
+    SIDE_WIDTH_MIN,
+    SIDE_WIDTH_MAX,
     type PanelKind,
     type Settings,
   } from '../../lib/storage'
@@ -34,6 +37,15 @@
   let rawMode = $state(false)
   // Honour a deep-link #hash only on the first render, not on every rerender.
   let hashHandled = false
+
+  // Live width used while dragging. Decoupled from settings so we can update
+  // the DOM many times per second without spamming chrome.storage, and only
+  // commit the value to storage on mouseup.
+  let draggingWidth = $state<number | null>(null)
+
+  // Derived "live" width: the drag preview while dragging, otherwise the
+  // persisted width from settings.
+  let sideWidth = $derived(draggingWidth ?? settings.sideWidth)
 
   // Monospace code glyph for the raw/preview toggle button.
   const RAW_ICON = '</>'
@@ -160,16 +172,68 @@
   function patchSettings(p: Partial<Settings>) {
     void setSettings(p)
   }
+
+  // ====== Sidebar resize (drag the right edge) ======
+  function onResizeStart(ev: PointerEvent) {
+    // Only left-click drags should resize; ignore other buttons / touch context.
+    if (ev.button !== 0) return
+    ev.preventDefault()
+    const startX = ev.clientX
+    const startWidth = sideWidth
+    draggingWidth = startWidth
+
+    const onMove = (e: PointerEvent) => {
+      const next = clampSideWidth(startWidth + (e.clientX - startX))
+      if (next !== draggingWidth) draggingWidth = next
+    }
+    const onUp = () => {
+      const final = draggingWidth ?? startWidth
+      draggingWidth = null
+      // Only write to storage when the value actually changed; keeps storage
+      // idle when the user just clicks without moving.
+      if (final !== settings.sideWidth) {
+        void setSettings({ sideWidth: final })
+      }
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+      document.body.style.removeProperty('cursor')
+      document.body.style.removeProperty('user-select')
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+    // Hint the cursor / suppress text selection across the whole viewport
+    // while the drag is in flight, even when the pointer leaves the handle.
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
 </script>
 
 <div
   class="md-app"
+  class:is-resizing={draggingWidth !== null}
   data-panel={settings.panel ?? 'none'}
   data-centered={settings.centered ? '1' : '0'}
+  style:--mdr-side-width={`${sideWidth}px`}
 >
   <aside class="md-side">
     {#if settings.panel}
-      <Toolbar panel={settings.panel} lang={settings.language} onSelect={(p: PanelKind) => patchSettings({ panel: p })} />
+      <div class="md-side-head">
+        <Toolbar
+          panel={settings.panel}
+          lang={settings.language}
+          onSelect={(p: PanelKind) => patchSettings({ panel: p })}
+        />
+        <button
+          type="button"
+          class="md-side-close"
+          title={t(settings.language, 'panel.collapse')}
+          aria-label={t(settings.language, 'panel.collapse')}
+          onclick={() => patchSettings({ panel: null })}
+        >{t(settings.language, 'panel.collapseSymbol')}</button>
+      </div>
       <div class="md-panel">
         {#if settings.panel === 'folder'}
           <FolderPanel lang={settings.language} />
@@ -181,17 +245,30 @@
           <SettingsPanel {settings} onPatch={patchSettings} />
         {/if}
       </div>
-    {:else}
-      <button
-        class="md-expand"
-        title={settings.language === 'zh_CN' ? '打开侧栏' : 'Open panel'}
-        aria-label={settings.language === 'zh_CN' ? '打开侧栏' : 'Open panel'}
-        onclick={() => patchSettings({ panel: 'outline' })}
-      >☰</button>
+      <!-- Draggable right edge: live preview width updates during drag,
+           committed to storage only on mouseup. -->
+      <div
+        class="md-resize"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={settings.language === 'zh_CN' ? '拖动以调整侧栏宽度' : 'Drag to resize side panel'}
+        aria-valuenow={sideWidth}
+        aria-valuemin={SIDE_WIDTH_MIN}
+        aria-valuemax={SIDE_WIDTH_MAX}
+        onpointerdown={onResizeStart}
+      ></div>
     {/if}
   </aside>
 
   <main class="md-main">
+    <button
+      type="button"
+      class="md-side-toggle"
+      title={t(settings.language, 'panel.expand')}
+      aria-label={t(settings.language, 'panel.expand')}
+      aria-pressed={!!settings.panel}
+      onclick={() => patchSettings({ panel: settings.panel ? null : 'outline' })}
+    >{t(settings.language, 'panel.expandSymbol')}</button>
     <button
       type="button"
       class="md-rawtoggle"
