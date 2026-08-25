@@ -383,9 +383,33 @@ body.mdr-active > pre {
   color: var(--mdr-accent);
 }
 
-/* Search panel */
+.md-panel.md-panel-search {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+}
 
-.md-search input {
+.md-panel.md-panel-search .md-search-self {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.md-panel.md-panel-search .md-search-results {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.md-panel.md-panel-search .md-search-bar {
+  flex: 0 0 auto;
+  padding: 0 8px 8px;
+}
+
+.md-panel.md-panel-search .md-search-bar input {
   width: 100%;
   box-sizing: border-box;
   padding: 6px 10px;
@@ -396,29 +420,15 @@ body.mdr-active > pre {
   font-size: 13px;
 }
 
-.md-search-status {
+/* Search panel — the result list is the only scrolling region. */
+.md-search-self {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--mdr-muted);
+  flex-direction: column;
+  min-height: 0;
 }
 
-.md-search-nav button {
-  border: 1px solid var(--mdr-border);
-  background: var(--mdr-bg);
-  color: var(--mdr-fg);
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 2px 8px;
-}
-
-mark.md-hit {
-  background: #fff3a8;
-  color: inherit;
-  border-radius: 2px;
-  padding: 0 1px;
+.md-search-results .md-outline {
+  padding: 0 8px;
 }
 
 mark.md-hit.md-hit-active {

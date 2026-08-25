@@ -234,13 +234,13 @@
           onclick={() => patchSettings({ panel: null })}
         >{t(settings.language, 'panel.collapseSymbol')}</button>
       </div>
-      <div class="md-panel">
+      <div class="md-panel" class:md-panel-search={settings.panel === 'search'}>
         {#if settings.panel === 'folder'}
           <FolderPanel lang={settings.language} />
         {:else if settings.panel === 'outline'}
           <OutlinePanel {headings} lang={settings.language} contentRoot={contentRoot} />
         {:else if settings.panel === 'search'}
-          <SearchPanel contentRoot={contentRoot} lang={settings.language} />
+          <SearchPanel {headings} lang={settings.language} />
         {:else if settings.panel === 'settings'}
           <SettingsPanel {settings} onPatch={patchSettings} />
         {/if}

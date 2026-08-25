@@ -35,8 +35,8 @@ const en: Dict = {
   'folder.empty': 'No markdown files in this folder.',
 
   // Search
-  'search.placeholder': 'Find in document…',
-  'search.noMatches': 'No matches',
+  'search.placeholder': 'Filter headings…',
+  'search.noMatches': 'No matching headings',
 
   // Settings
   'settings.enable': 'Enable rendering',
@@ -97,8 +97,8 @@ const zh_CN: Dict = {
   'folder.loading': '加载中…',
   'folder.empty': '该文件夹中没有 Markdown 文件。',
 
-  'search.placeholder': '在文档中查找…',
-  'search.noMatches': '无匹配',
+  'search.placeholder': '搜索标题…',
+  'search.noMatches': '无匹配标题',
 
   'settings.enable': '启用渲染',
   'settings.centered': '居中布局',
