@@ -302,6 +302,36 @@ body.mdr-active > pre {
 
 /* Outline / TOC */
 
+.md-outline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 4px 6px;
+}
+
+.md-outline-head h2 {
+  margin: 0;
+}
+
+.md-outline-bulk {
+  border: 0;
+  background: transparent;
+  color: var(--mdr-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.md-outline-bulk:hover,
+.md-outline-bulk:focus-visible {
+  color: var(--mdr-accent);
+  background: var(--mdr-accent-soft);
+}
+
 .md-outline {
   list-style: none;
   margin: 0;
@@ -312,9 +342,23 @@ body.mdr-active > pre {
   margin: 2px 0;
 }
 
+.md-outline ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.md-outline-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
 .md-outline a {
   display: block;
-  padding: 4px 8px;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 8px 4px 0;
   border-radius: 6px;
   color: inherit;
   text-decoration: none;
@@ -328,16 +372,47 @@ body.mdr-active > pre {
   background: var(--mdr-accent-soft);
 }
 
-.md-outline li.is-active > a {
+.md-outline li.is-active > .md-outline-row > a {
   color: var(--mdr-accent);
   font-weight: 600;
 }
 
-.md-outline li[data-level='2'] a { padding-left: 16px; }
-.md-outline li[data-level='3'] a { padding-left: 24px; }
-.md-outline li[data-level='4'] a { padding-left: 32px; }
-.md-outline li[data-level='5'] a { padding-left: 40px; }
-.md-outline li[data-level='6'] a { padding-left: 48px; }
+.md-outline-toggle,
+.md-outline-toggle-spacer {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 24px;
+}
+
+.md-outline-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mdr-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.md-outline-toggle svg {
+  width: 10px;
+  height: 10px;
+  display: block;
+}
+
+.md-outline-toggle:hover,
+.md-outline-toggle:focus-visible {
+  color: var(--mdr-accent);
+  background: var(--mdr-accent-soft);
+  border-radius: 4px;
+}
+
+.md-outline li[data-level='2'] > .md-outline-row { padding-left: 8px; }
+.md-outline li[data-level='3'] > .md-outline-row { padding-left: 16px; }
+.md-outline li[data-level='4'] > .md-outline-row { padding-left: 24px; }
+.md-outline li[data-level='5'] > .md-outline-row { padding-left: 32px; }
+.md-outline li[data-level='6'] > .md-outline-row { padding-left: 40px; }
 
 /* Folder list */
 

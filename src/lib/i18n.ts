@@ -26,6 +26,8 @@ const en: Dict = {
 
   // Outline
   'outline.empty': 'No headings in this document.',
+  'outline.expandAll': 'Expand all',
+  'outline.collapseAll': 'Collapse all',
 
   // Folder
   'folder.notFile': 'The folder browser is available only for local file:// documents.',
@@ -90,6 +92,8 @@ const zh_CN: Dict = {
   'panel.expandSymbol': '\u2630',
 
   'outline.empty': '该文档没有标题。',
+  'outline.expandAll': '展开全部',
+  'outline.collapseAll': '折叠全部',
 
   'folder.notFile': '文件夹浏览仅适用于本地 file:// 文档。',
   'folder.needFileAccess':
