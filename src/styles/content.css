@@ -6,8 +6,18 @@
   --mdr-muted: #59636e;
   --mdr-border: #d1d9e0;
   --mdr-link: #0969da;
-  --mdr-code-bg: #f6f8fa;
-  --mdr-code-fg: #1f2328;
+  --mdr-code-bg: #f3f6ff;
+  --mdr-code-fg: #607cd2;
+  --mdr-block-bg: hsl(220, 29%, 97%);
+  --mdr-block-fg: hsl(220, 8%, 20%);
+  --mdr-hljs-mono-3: hsl(220, 4%, 54%);
+  --mdr-hljs-hue-1: hsl(198, 99%, 37%);
+  --mdr-hljs-hue-2: hsl(221, 87%, 60%);
+  --mdr-hljs-hue-3: hsl(301, 63%, 40%);
+  --mdr-hljs-hue-4: hsl(119, 34%, 47%);
+  --mdr-hljs-hue-5: hsl(5, 74%, 59%);
+  --mdr-hljs-hue-6: hsl(35, 99%, 36%);
+  --mdr-hljs-hue-6-2: hsl(35, 99%, 40%);
   --mdr-accent: #0969da;
   --mdr-accent-soft: rgba(9, 105, 218, 0.12);
   --mdr-panel-bg: #f6f8fa;
@@ -27,8 +37,10 @@
   --mdr-muted: #9198a1;
   --mdr-border: #30363d;
   --mdr-link: #2f81f7;
-  --mdr-code-bg: #161b22;
-  --mdr-code-fg: #e6edf3;
+  --mdr-code-bg: #1d253d;
+  --mdr-code-fg: #6785e0;
+  --mdr-block-bg: #0d1117;
+  --mdr-block-fg: #bbbbbb;
   --mdr-accent: #2f81f7;
   --mdr-accent-soft: rgba(47, 129, 247, 0.18);
   --mdr-panel-bg: #161b22;
@@ -49,8 +61,10 @@
     --mdr-muted: #9198a1;
     --mdr-border: #30363d;
     --mdr-link: #2f81f7;
-    --mdr-code-bg: #161b22;
-    --mdr-code-fg: #e6edf3;
+    --mdr-code-bg: #1d253d;
+    --mdr-code-fg: #6785e0;
+    --mdr-block-bg: #0d1117;
+    --mdr-block-fg: #bbbbbb;
     --mdr-accent: #2f81f7;
     --mdr-accent-soft: rgba(47, 129, 247, 0.18);
     --mdr-panel-bg: #161b22;
@@ -740,13 +754,13 @@ mark.md-hit.md-hit-active {
   color: var(--mdr-code-fg);
   padding: 0.15em 0.35em;
   border-radius: 4px;
-  font-size: 85%;
+  font-size: 0.9em;
 }
 
 .md-content pre.md-code {
   position: relative;
-  background: var(--mdr-code-bg);
-  color: var(--mdr-code-fg);
+  background: var(--mdr-block-bg);
+  color: var(--mdr-block-fg);
   border-radius: 8px;
   padding: 14px 16px;
   overflow-x: auto;
@@ -755,10 +769,65 @@ mark.md-hit.md-hit-active {
 
 .md-content pre.md-code code {
   background: transparent;
+  color: inherit;
   padding: 0;
   font-size: 13.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* Match md-reader's One Light palette for fenced code tokens. */
+.md-content .hljs-comment,
+.md-content .hljs-quote {
+  color: var(--mdr-hljs-mono-3);
+  font-style: italic;
+}
+
+.md-content .hljs-doctag,
+.md-content .hljs-keyword,
+.md-content .hljs-formula {
+  color: var(--mdr-hljs-hue-3);
+}
+
+.md-content .hljs-section,
+.md-content .hljs-name,
+.md-content .hljs-selector-tag,
+.md-content .hljs-deletion,
+.md-content .hljs-subst {
+  color: var(--mdr-hljs-hue-5);
+}
+
+.md-content .hljs-literal { color: var(--mdr-hljs-hue-1); }
+
+.md-content .hljs-string,
+.md-content .hljs-regexp,
+.md-content .hljs-addition,
+.md-content .hljs-attribute,
+.md-content .hljs-meta-string {
+  color: var(--mdr-hljs-hue-4);
+}
+
+.md-content .hljs-built_in,
+.md-content .hljs-class .hljs-title { color: var(--mdr-hljs-hue-6-2); }
+
+.md-content .hljs-attr,
+.md-content .hljs-variable,
+.md-content .hljs-template-variable,
+.md-content .hljs-type,
+.md-content .hljs-selector-class,
+.md-content .hljs-selector-attr,
+.md-content .hljs-selector-pseudo,
+.md-content .hljs-number { color: var(--mdr-hljs-hue-6); }
+
+.md-content .hljs-symbol,
+.md-content .hljs-bullet,
+.md-content .hljs-link,
+.md-content .hljs-meta,
+.md-content .hljs-selector-id,
+.md-content .hljs-title { color: var(--mdr-hljs-hue-2); }
+
+.md-content .hljs-emphasis { font-style: italic; }
+.md-content .hljs-strong { font-weight: bold; }
+.md-content .hljs-link { text-decoration: underline; }
 
 .md-copy {
   position: absolute;

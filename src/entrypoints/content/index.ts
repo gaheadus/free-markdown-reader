@@ -7,7 +7,6 @@ import { isPlainTextMarkdown, readRaw } from '../../lib/detect'
 import { getSettings } from '../../lib/storage'
 import { MD_MATCHES } from '../../config/matches'
 import katexCss from 'katex/dist/katex.min.css?inline'
-import hljsCss from 'highlight.js/styles/github-dark.min.css?inline'
 import contentCss from '../../styles/content.css?inline'
 
 export default defineContentScript({
@@ -113,6 +112,6 @@ function setFavicon() {
 function injectStyles() {
   const style = document.createElement('style')
   style.id = 'mdr-styles'
-  style.textContent = `${contentCss}\n${katexCss}\n${hljsCss}`
+  style.textContent = `${contentCss}\n${katexCss}`
   document.head.append(style)
 }
