@@ -42,6 +42,10 @@
 - 快捷键：`Alt+Shift+B/C/R/T`
 - 中英文界面（跟随系统语言自动切换）
 
+## Chrome 网上应用店
+
+本扩展已准备好以签名的 Manifest V3 软件包发布到 Chrome 网上应用店。扩展的内容脚本只运行在 Markdown 文件 URL 上；主机权限用于让后台服务工作线程在启用热重载和文件夹浏览时获取当前打开的网页 Markdown 文件。扩展使用 `storage` 权限保存本地设置，不会收集、出售或传输个人数据。完整隐私政策见 [PRIVACY.md](PRIVACY.md)。
+
 ## 安装（直接下载，无需构建）
 
 - **最新版（始终保持最新）：** [`markdown-reader-chrome.zip`](https://github.com/whieet/free-markdown-reader/releases/latest/download/markdown-reader-chrome.zip)

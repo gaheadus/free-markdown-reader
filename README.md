@@ -43,6 +43,10 @@ no account. Built around the features that matter:
 - Persistent settings via `chrome.storage.local`, with live update across tabs
 - Keyboard shortcuts: `Alt+Shift+B/C/R/T`
 
+## Chrome Web Store
+
+The extension is prepared for distribution as a signed Manifest V3 package through the Chrome Web Store. Its content script runs only on Markdown URL patterns; the host permission lets the service worker fetch the currently opened web Markdown file for hot reload and directory browsing. It uses the `storage` permission for local preferences and does not collect, sell, or transmit personal data. See [PRIVACY.md](PRIVACY.md) for the full privacy policy.
+
 ## Install (download — no build)
 
 - **Latest (always up to date):** [`markdown-reader-chrome.zip`](https://github.com/whieet/free-markdown-reader/releases/latest/download/markdown-reader-chrome.zip)
