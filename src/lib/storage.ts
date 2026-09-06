@@ -1,11 +1,71 @@
-// Settings stored in chrome.storage.local.
+// Settings stored in chrome.storage.local. Sidebar mode + width live in
+// sessionStorage so each tab is naturally isolated by the browser itself — no
+// tab id plumbing, no popup drift, no SW round-trip. The shared settings
+// (theme/language/etc.) still cross tabs via onSettingsChanged.
 
 import { browser } from 'wxt/browser'
 import { storage } from 'wxt/utils/storage'
 import { detectLanguage, type Lang } from './i18n'
 
 export type ThemeMode = 'auto' | 'light' | 'dark'
-export type PanelKind = 'folder' | 'outline' | 'search' | 'settings' | null
+export type PanelKind = 'folder' | 'outline' | 'settings' | null
+
+/** Clamp a candidate width into the allowed range for the resizable sidebar. */
+export function clampSideWidth(width: number): number {
+  if (!Number.isFinite(width)) return SIDE_WIDTH_DEFAULT
+  return Math.min(SIDE_WIDTH_MAX, Math.max(SIDE_WIDTH_MIN, Math.round(width)))
+}
+
+// ====== Per-tab sidebar UI ================================================ //
+// sessionStorage is scoped to the tab by the browser: opening two markdown
+// tabs in the same window gives each its own store, switching tabs preserves
+// state, closing the tab drops the state. That is exactly the isolation we
+// want for the sidebar without any tab id bookkeeping. Popup never reads or
+// writes these — sidebar controls live in the content UI, not in popup.
+const TAB_PANEL_KEY = 'mdr:panel'
+const TAB_SIDE_WIDTH_KEY = 'mdr:sideWidth'
+const TAB_PANEL_KINDS = new Set(['folder', 'outline', 'settings'])
+
+export function readTabPanel(): PanelKind {
+  try {
+    const v = sessionStorage.getItem(TAB_PANEL_KEY)
+    if (v === null) return 'outline'
+    if (v === 'none') return null
+    if (v && TAB_PANEL_KINDS.has(v)) return v as PanelKind
+  } catch {
+    /* sessionStorage can throw in locked-down contexts (e.g. file:// with
+       strict storage partitioning on some Chrome builds). */
+  }
+  return 'outline'
+}
+
+export function writeTabPanel(panel: PanelKind): void {
+  try {
+    sessionStorage.setItem(TAB_PANEL_KEY, panel ?? 'none')
+  } catch {
+    /* ignore quota / access errors */
+  }
+}
+
+export function readTabSideWidth(fallback: number): number {
+  try {
+    const v = sessionStorage.getItem(TAB_SIDE_WIDTH_KEY)
+    if (v == null) return fallback
+    const n = Number(v)
+    if (!Number.isFinite(n)) return fallback
+    return clampSideWidth(n)
+  } catch {
+    return fallback
+  }
+}
+
+export function writeTabSideWidth(width: number): void {
+  try {
+    sessionStorage.setItem(TAB_SIDE_WIDTH_KEY, String(clampSideWidth(width)))
+  } catch {
+    /* ignore quota / access errors */
+  }
+}
 
 /** All toggleable markdown-it plugins. Keys match render.ts. */
 export const MD_PLUGIN_KEYS = [
@@ -32,10 +92,7 @@ export interface Settings {
   refresh: boolean
   theme: ThemeMode
   language: Lang
-  panel: PanelKind
   mdPlugins: Record<MdPluginKey, boolean>
-  /** Sidebar width in pixels. Persisted so user-chosen size survives reloads. */
-  sideWidth: number
 }
 
 // Bounds for the user-resizable sidebar width.
@@ -52,8 +109,6 @@ export const DEFAULT_SETTINGS: Settings = {
   refresh: false,
   theme: 'auto',
   language: detected,
-  panel: 'outline',
-  sideWidth: SIDE_WIDTH_DEFAULT,
   mdPlugins: Object.fromEntries(
     MD_PLUGIN_KEYS.map((k) => [k, true]),
   ) as Record<MdPluginKey, boolean>,
@@ -91,25 +146,11 @@ export function onSettingsChanged(
 
 function mergeDefaults(raw: Settings | null): Settings {
   if (!raw) return DEFAULT_SETTINGS
-  // Defensive: clamp sideWidth from older storage records that may carry an
-  // out-of-range value (or none at all, prior to this feature shipping).
-  const sw =
-    typeof raw.sideWidth === 'number' && Number.isFinite(raw.sideWidth)
-      ? Math.min(SIDE_WIDTH_MAX, Math.max(SIDE_WIDTH_MIN, raw.sideWidth))
-      : SIDE_WIDTH_DEFAULT
   return {
     ...DEFAULT_SETTINGS,
     ...raw,
-    sideWidth: sw,
-    ...(raw.panel === 'search' ? { panel: 'outline' as const } : {}),
     mdPlugins: { ...DEFAULT_SETTINGS.mdPlugins, ...(raw.mdPlugins ?? {}) },
   }
-}
-
-/** Clamp a candidate width into the allowed range for the resizable sidebar. */
-export function clampSideWidth(width: number): number {
-  if (!Number.isFinite(width)) return SIDE_WIDTH_DEFAULT
-  return Math.min(SIDE_WIDTH_MAX, Math.max(SIDE_WIDTH_MIN, Math.round(width)))
 }
 
 /** Whether the extension is permitted to access file:// URLs. */

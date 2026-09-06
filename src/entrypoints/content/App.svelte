@@ -8,8 +8,13 @@
     onSettingsChanged,
     setSettings,
     clampSideWidth,
+    readTabPanel,
+    writeTabPanel,
+    readTabSideWidth,
+    writeTabSideWidth,
     SIDE_WIDTH_MIN,
     SIDE_WIDTH_MAX,
+    SIDE_WIDTH_DEFAULT,
     type PanelKind,
     type Settings,
   } from '../../lib/storage'
@@ -30,6 +35,10 @@
 
   let raw = $state.raw(untrack(() => initialRaw))
   let settings = $state.raw(untrack(() => initialSettings))
+  // Sidebar mode + width live in sessionStorage, which the browser scopes to
+  // the tab for us — no plumbing, no cross-tab writes, no race on activation.
+  let panel = $state<PanelKind>(untrack(() => readTabPanel()))
+  let sideWidthState = $state<number>(untrack(() => readTabSideWidth(SIDE_WIDTH_DEFAULT)))
   let html = $state('')
   let headings = $state<Heading[]>([])
   let contentRoot: HTMLElement | null = $state(null)
@@ -43,8 +52,9 @@
   let draggingWidth = $state<number | null>(null)
 
   // Derived "live" width: the drag preview while dragging, otherwise the
-  // persisted width from settings.
-  let sideWidth = $derived(draggingWidth ?? settings.sideWidth)
+  // persisted per-tab width. Independent of `settings` so popup-driven changes
+  // (which never include sideWidth after the per-tab split) cannot bleed in.
+  let sideWidth = $derived(draggingWidth ?? sideWidthState)
 
   // Filter overlays the outline tree; it is not a separate panel.
   let filterOpen = $state(false)
@@ -152,7 +162,7 @@
   function applyCommand(cmd: BroadcastCommand) {
     switch (cmd) {
       case 'toggle-panel':
-        selectPanel(settings.panel ? null : 'outline')
+        selectPanel(panel ? null : 'outline')
         break
       case 'toggle-centered':
         patchSettings({ centered: !settings.centered })
@@ -177,13 +187,14 @@
 
   function selectPanel(next: PanelKind) {
     if (next !== 'outline') filterOpen = false
-    void setSettings({ panel: next })
+    panel = next
+    writeTabPanel(next)
   }
 
   function toggleFilter() {
-    if (settings.panel !== 'outline') {
+    if (panel !== 'outline') {
       filterOpen = true
-      void setSettings({ panel: 'outline' })
+      selectPanel('outline')
       return
     }
     filterOpen = !filterOpen
@@ -205,10 +216,11 @@
     const onUp = () => {
       const final = draggingWidth ?? startWidth
       draggingWidth = null
-      // Only write to storage when the value actually changed; keeps storage
-      // idle when the user just clicks without moving.
-      if (final !== settings.sideWidth) {
-        void setSettings({ sideWidth: final })
+      // Only write to per-tab storage when the value actually changed; keeps
+      // storage idle when the user just clicks without moving.
+      if (final !== startWidth) {
+        sideWidthState = final
+        writeTabSideWidth(final)
       }
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
@@ -230,15 +242,15 @@
 <div
   class="md-app"
   class:is-resizing={draggingWidth !== null}
-  data-panel={settings.panel ?? 'none'}
+  data-panel={panel ?? 'none'}
   data-centered={settings.centered ? '1' : '0'}
   style:--mdr-side-width={`${sideWidth}px`}
 >
   <aside class="md-side">
-    {#if settings.panel}
+    {#if panel}
       <div class="md-side-head">
         <Toolbar
-          panel={settings.panel}
+          {panel}
           lang={settings.language}
           {filterOpen}
           onSelect={selectPanel}
@@ -252,12 +264,12 @@
           onclick={() => selectPanel(null)}
         >{t(settings.language, 'panel.collapseSymbol')}</button>
       </div>
-      <div class="md-panel" class:md-panel-filter={filterOpen && settings.panel === 'outline'}>
-        {#if settings.panel === 'folder'}
+      <div class="md-panel" class:md-panel-filter={filterOpen && panel === 'outline'}>
+        {#if panel === 'folder'}
           <FolderPanel lang={settings.language} />
-        {:else if settings.panel === 'outline'}
+        {:else if panel === 'outline'}
           <OutlinePanel {headings} lang={settings.language} contentRoot={contentRoot} {filterOpen} />
-        {:else if settings.panel === 'settings'}
+        {:else if panel === 'settings'}
           <SettingsPanel {settings} onPatch={patchSettings} />
         {/if}
       </div>
@@ -282,8 +294,8 @@
       class="md-side-toggle"
       title={t(settings.language, 'panel.expand')}
       aria-label={t(settings.language, 'panel.expand')}
-      aria-pressed={!!settings.panel}
-      onclick={() => selectPanel(settings.panel ? null : 'outline')}
+      aria-pressed={!!panel}
+      onclick={() => selectPanel(panel ? null : 'outline')}
     >{t(settings.language, 'panel.expandSymbol')}</button>
     <button
       type="button"

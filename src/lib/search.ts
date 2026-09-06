@@ -1,5 +1,21 @@
 // In-document text search: find matches inside the rendered article and
 // expose next/prev navigation by wrapping matches in <mark class="md-hit">.
+//
+// ⚠️ Currently UNUSED.
+//
+// Reason: the user explicitly chose not to provide full-text search inside
+// this extension. They argue that:
+//   1. Chrome's built-in page search (Ctrl/Cmd+F) already covers this case.
+//   2. Re-implementing it here duplicates browser functionality for no gain.
+// The outline panel exposes a filter input that only filters the TOC tree
+// (headings + their ancestors) — that's intentional, not a regression.
+//
+// Keep this file in source so future contributors can wire it back up if the
+// product direction changes, but DO NOT import it from any panel: doing so
+// would re-introduce the very feature we just decided to drop.
+//
+// If you decide to remove this file entirely, also remove `SearchPanel.svelte`
+// and any Toolbar entry pointing at full-text search.
 
 const HIT_CLASS = 'md-hit'
 const ACTIVE_CLASS = 'md-hit-active'

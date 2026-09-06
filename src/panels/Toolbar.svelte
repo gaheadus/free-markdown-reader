@@ -11,14 +11,18 @@
   }
   let { panel, lang, filterOpen = false, onSelect, onToggleFilter }: Props = $props()
 
-  const items: Array<{ key: PanelKind; icon: string; i18nKey: string }> = [
+  // `search` is a filter overlay on the outline, not a real PanelKind — keep
+  // it as a string literal here so we can render its button alongside the
+  // panel tabs without widening the public PanelKind enum.
+  type ToolbarKey = Exclude<PanelKind, null> | 'search'
+  const items: Array<{ key: ToolbarKey; icon: string; i18nKey: string }> = [
     { key: 'folder',   icon: '\u{1F4C1}', i18nKey: 'panel.folder' },
     { key: 'outline',  icon: '☰',           i18nKey: 'panel.outline' },
     { key: 'search',   icon: '\u{1F50D}', i18nKey: 'panel.search' },
     { key: 'settings', icon: '⚙',           i18nKey: 'panel.settings' },
   ]
 
-  function click(key: PanelKind) {
+  function click(key: ToolbarKey) {
     if (key === 'search') {
       onToggleFilter()
       return
@@ -26,7 +30,7 @@
     onSelect(panel === key ? null : key)
   }
 
-  function isActive(key: PanelKind): boolean {
+  function isActive(key: ToolbarKey): boolean {
     // Search is a filter overlay on the outline, not its own tab.
     if (key === 'search') return false
     return panel === key

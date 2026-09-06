@@ -14,10 +14,17 @@ export const LANG_LABELS: Record<Lang, string> = {
 type Dict = Record<string, string>
 
 const en: Dict = {
-  // Toolbar
+  // Toolbar buttons.
+  //
+  // The "search" button (🔍) is a filter overlay on the outline panel — it
+  // filters the table-of-contents tree by heading text, NOT a full-text
+  // search of the document. By product decision we do NOT re-implement
+  // full-text search here, because the browser's built-in Find bar (Ctrl/Cmd+F)
+  // already covers it. The label below intentionally keeps the word "Search"
+  // for muscle-memory continuity, but its UI behaviour is "filter headings".
   'panel.folder': 'Folder',
   'panel.outline': 'Outline',
-  'panel.search': 'Search',
+  'panel.search': 'Search (filter headings)',
   'panel.settings': 'Settings',
   'panel.collapse': 'Hide side panel',
   'panel.expand': 'Show side panel',
@@ -84,7 +91,7 @@ const en: Dict = {
 const zh_CN: Dict = {
   'panel.folder': '文件夹',
   'panel.outline': '大纲',
-  'panel.search': '搜索',
+  'panel.search': '搜索（筛选标题）',
   'panel.settings': '设置',
   'panel.collapse': '隐藏侧栏',
   'panel.expand': '显示侧栏',
