@@ -78,7 +78,16 @@
     // Defer post-render work until DOM updates.
     queueMicrotask(() => {
       if (!contentRoot) return
-      headings = extractHeadings(contentRoot)
+      // Stable reference: only swap `headings` when the id list actually
+      // changed. Without this, every settings tweak rebuilds the headings
+      // array and the OutlinePanel's scroll-spy effect tears down + re-
+      // creates its IntersectionObserver — which fires onChange(null) on
+      // its first compute and resets the user's scroll position in the TOC.
+      const next = extractHeadings(contentRoot)
+      if (!headingsEqual(lastHeadingsSig, next)) {
+        lastHeadingsSig = next
+        headings = next
+      }
       wirePagePlugins(contentRoot)
       if (settings.mdPlugins.mermaid) {
         void renderMermaid(contentRoot, effectiveTheme(settings) === 'dark')
@@ -98,6 +107,20 @@
     })
   }
 
+  // Signature used to compare heading lists cheaply: id + level. We compare
+  // the live DOM-extracted headings against the last set we published so
+  // unrelated rerenders (theme toggles, popup patches) keep the same array
+  // reference and downstream `$effect`s skip.
+  function headingsEqual(a: Heading[], b: Heading[]): boolean {
+    if (a.length !== b.length) return false
+    for (let i = 0; i < a.length; i++) {
+      if (a[i].id !== b[i].id || a[i].level !== b[i].level) return false
+    }
+    return true
+  }
+  // Mutable holder; tracked only inside rerender(), not by `$effect`s.
+  let lastHeadingsSig: Heading[] = []
+
   function extractHeadings(root: HTMLElement): Heading[] {
     return Array.from(
       root.querySelectorAll<HTMLElement>('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'),
@@ -109,7 +132,16 @@
   }
 
   $effect(() => {
-    if (settings.enable) rerender()
+    // Track ONLY the inputs that should trigger a full HTML rerender.
+    // `settings.centered` / `refresh` / `language` don't change rendered HTML,
+    // so depending on `settings` as a whole was forcing redundant work on
+    // every popup patch.
+    if (!settings.enable) return
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    raw; // explicit dep so toggling enable back on re-runs against fresh raw
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    settings.mdPlugins; // explicit dep
+    rerender()
   })
 
   $effect(() => {
@@ -200,11 +232,32 @@
     filterOpen = !filterOpen
   }
 
-  // ====== Sidebar resize (drag the right edge) ======
+  // ====== Sidebar resize (drag the right edge) ===============================
+  // Global state for the (at most one) in-flight drag. Hoisting it out of the
+  // per-call closure lets us bail out cleanly from anywhere — including the
+  // window blur / pagehide / unmount paths — without relying on pointerup
+  // firing. pointerup is unreliable when the OS yanks focus mid-drag (lock
+  // screen, native context menu, Alt-Tab on some Linux WMs), and on those
+  // failures leaving `draggingWidth !== null` would freeze the sidebar width
+  // and leave `cursor: col-resize` / `user-select: none` baked into <body>.
+  let activeDragCleanup: (() => void) | null = null
+
+  function cancelActiveDrag() {
+    if (!activeDragCleanup) return
+    const fn = activeDragCleanup
+    activeDragCleanup = null
+    fn()
+  }
+
   function onResizeStart(ev: PointerEvent) {
     // Only left-click drags should resize; ignore other buttons / touch context.
     if (ev.button !== 0) return
     ev.preventDefault()
+
+    // If a previous drag somehow never resolved (shouldn't happen given the
+    // cleanup paths below, but defensive), tear it down before starting fresh.
+    cancelActiveDrag()
+
     const startX = ev.clientX
     const startWidth = sideWidth
     draggingWidth = startWidth
@@ -225,18 +278,34 @@
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
+      window.removeEventListener('blur', onUp)
+      window.removeEventListener('visibilitychange', onVisibility)
       document.body.style.removeProperty('cursor')
       document.body.style.removeProperty('user-select')
+      activeDragCleanup = null
+    }
+    // `visibilitychange` fires on tab hide / freeze; treat it like pointerup
+    // so the drag state can't outlive the visible tab.
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') onUp()
     }
 
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onUp)
+    window.addEventListener('blur', onUp)
+    document.addEventListener('visibilitychange', onVisibility)
     // Hint the cursor / suppress text selection across the whole viewport
     // while the drag is in flight, even when the pointer leaves the handle.
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
+    activeDragCleanup = onUp
   }
+
+  // Belt-and-braces: if the App unmounts while a drag is in flight (panel
+  // removed, hot-reload, navigation), the window listeners are torn down
+  // with the page anyway, but we still want body styles reset promptly.
+  onMount(() => () => cancelActiveDrag())
 </script>
 
 <div
@@ -309,13 +378,31 @@
       <span class="md-rawtoggle-icon">{RAW_ICON}</span>
       <span class="md-rawtoggle-label">{t(settings.language, rawMode ? 'view.preview' : 'view.raw')}</span>
     </button>
-    <article
-      class="md-content markdown-body"
-      class:is-hidden={rawMode}
-      bind:this={contentRoot}
-    >{@html html}</article>
-    {#if rawMode}
-      <pre class="md-raw">{raw}</pre>
+    {#if settings.enable}
+      <article
+        class="md-content markdown-body"
+        class:is-hidden={rawMode}
+        bind:this={contentRoot}
+      >{@html html}</article>
+      {#if rawMode}
+        <pre class="md-raw">{raw}</pre>
+      {/if}
+    {:else}
+      <!-- Extension disabled at runtime via the popup. Render the raw
+           markdown source as a plain <pre> instead of the styled article so
+           the user still gets something readable, and make it easy to turn
+           back on without leaving the page. -->
+      <div class="md-disabled">
+        <div class="md-disabled-banner">
+          {t(settings.language, 'view.disabled')}
+          <button
+            type="button"
+            class="md-disabled-enable"
+            onclick={() => patchSettings({ enable: true })}
+          >{t(settings.language, 'view.enableNow')}</button>
+        </div>
+        <pre class="md-raw md-raw-fallback">{raw}</pre>
+      </div>
     {/if}
   </main>
 </div>

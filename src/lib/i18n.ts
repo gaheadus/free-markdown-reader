@@ -70,6 +70,10 @@ const en: Dict = {
   'view.preview': 'Preview',
   'view.showRaw': 'View raw source',
   'view.showPreview': 'Back to preview',
+  // Shown when settings.enable is toggled off at runtime from the popup;
+  // replaces the styled article with the raw source + a one-click re-enable.
+  'view.disabled': 'Markdown Reader is disabled.',
+  'view.enableNow': 'Enable',
 
   // Plugin labels
   'plugin.emoji': 'Emoji',
@@ -132,6 +136,9 @@ const zh_CN: Dict = {
   'view.preview': '预览',
   'view.showRaw': '查看源码',
   'view.showPreview': '返回预览',
+  // 在 popup 中运行时关闭扩展时显示的占位文案。
+  'view.disabled': 'Markdown Reader 当前已禁用。',
+  'view.enableNow': '启用',
 
   'plugin.emoji': '表情符号',
   'plugin.sub': '下标',

@@ -47,9 +47,8 @@ export default defineContentScript({
     }
 
     injectStyles()
+    const undo = takeover()
     try {
-      takeover()
-
       const host = document.createElement('div')
       host.id = 'mdr-root'
       document.body.append(host)
@@ -61,8 +60,7 @@ export default defineContentScript({
     } catch (err) {
       // Rendering failed — undo the takeover so the browser's original plaintext
       // shows again instead of a blank page (mdr-active hides the native <pre>).
-      document.body.classList.remove('mdr-active')
-      document.getElementById('mdr-root')?.remove()
+      undo()
       console.error('[Markdown Reader] failed to render; showing raw text:', err)
     } finally {
       // Always lift the anti-flash hide so a failure can never leave a blank page.
@@ -71,9 +69,23 @@ export default defineContentScript({
   },
 })
 
-function takeover() {
+// `takeover` mutates the host document (body class, margin, title, dataset,
+// favicon). Every mutation is recorded in the returned `undo` callback so
+// failure paths can restore the page to its original state — otherwise a
+// crash mid-takeover could leave a blank page or stale title. The undo also
+// handles pagehide / document hidden so the original state is recoverable
+// when the content script tears down on navigation.
+function takeover(): () => void {
   document.body.classList.add('mdr-active')
   document.documentElement.dataset.mdrTheme ??= 'auto'
+  // Track every DOM property we touch so undo restores them precisely.
+  const prev = {
+    bodyMargin: document.body.style.margin,
+    htmlDatasetMdrTheme: document.documentElement.dataset.mdrTheme,
+    title: document.title,
+    faviconId: '',
+  }
+
   document.body.style.margin = '0'
   const path = location.pathname
   const seg = path.slice(path.lastIndexOf('/') + 1)
@@ -85,7 +97,29 @@ function takeover() {
     // decodeURIComponent throws URIError; keep the raw segment instead.
   }
   if (name && !document.title) document.title = name
-  setFavicon()
+  const injectedFavicon = setFavicon()
+  if (injectedFavicon) prev.faviconId = injectedFavicon.id
+
+  return function undo() {
+    document.body.classList.remove('mdr-active')
+    document.body.style.margin = prev.bodyMargin
+    if (prev.htmlDatasetMdrTheme === undefined) {
+      delete document.documentElement.dataset.mdrTheme
+    } else {
+      document.documentElement.dataset.mdrTheme = prev.htmlDatasetMdrTheme
+    }
+    document.title = prev.title
+    // Remove only the favicon we injected. Pre-existing favicons are not
+    // touched — undo cannot reliably restore an arbitrary third-party href
+    // the page originally declared, and removing it would be worse.
+    if (prev.faviconId) {
+      document.getElementById(prev.faviconId)?.remove()
+    }
+    // Remove the injected stylesheet + the App host so the page returns to
+    // the browser's plain <pre> rendering if anything goes wrong.
+    document.getElementById('mdr-styles')?.remove()
+    document.getElementById('mdr-root')?.remove()
+  }
 }
 
 // Inject our SVG favicon only on file:// — http(s) pages may serve a strict
@@ -95,10 +129,14 @@ function takeover() {
 // page's own favicon (or Chrome's default) is good enough. We can't reliably
 // probe the policy first because that very `fetch` is itself subject to the
 // same CSP (connect-src falls back to default-src).
-function setFavicon() {
-  if (location.protocol !== 'file:') return
-  if (document.querySelector('link[rel~="icon"]')) return
+//
+// Returns the injected <link> so the caller can remove it on undo, or null
+// when nothing was injected.
+function setFavicon(): HTMLLinkElement | null {
+  if (location.protocol !== 'file:') return null
+  if (document.querySelector('link[rel~="icon"]')) return null
   const link = document.createElement('link')
+  link.id = 'mdr-favicon'
   link.rel = 'icon'
   link.type = 'image/svg+xml'
   link.href =
@@ -107,6 +145,7 @@ function setFavicon() {
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" fill="%230969da"/><text x="8" y="12" text-anchor="middle" font-size="10" font-family="sans-serif" font-weight="700" fill="white">M</text></svg>',
     )
   document.head.append(link)
+  return link
 }
 
 function injectStyles() {

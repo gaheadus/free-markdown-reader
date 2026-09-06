@@ -644,6 +644,39 @@ mark.md-hit.md-hit-active {
   border: 1px solid var(--mdr-border);
   border-radius: 8px;
 }
+/* Disabled-state fallback: full-width, no card chrome, reads like the
+   plain document the user would have seen without the extension. */
+.md-raw.md-raw-fallback {
+  border-radius: 0;
+  border: none;
+  background: var(--mdr-panel-bg);
+  font-size: 14px;
+}
+
+/* Disabled-state banner + one-click re-enable button shown above the raw
+   fallback when settings.enable was turned off from the popup at runtime. */
+.md-disabled { display: flex; flex-direction: column; min-height: 100%; }
+.md-disabled-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 10px 18px;
+  background: var(--mdr-accent-soft);
+  color: var(--mdr-fg);
+  border-bottom: 1px solid var(--mdr-border);
+  font-size: 13.5px;
+}
+.md-disabled-enable {
+  border: 1px solid var(--mdr-accent);
+  background: var(--mdr-accent);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+.md-disabled-enable:hover { filter: brightness(1.08); }
 
 /* Floating raw / preview toggle, top-right of the content area */
 .md-rawtoggle {
@@ -879,7 +912,20 @@ mark.md-hit.md-hit-active {
 /* Mermaid host */
 .md-mermaid { margin: 1em 0; text-align: center; }
 .md-mermaid svg { max-width: 100%; height: auto; }
-.md-mermaid-error { border-color: #d1242f; color: #d1242f; }
+/* Mermaid source <pre> with a render error — keep the code visible (so the
+   user can fix it) and tint the border red. */
+.md-content pre.md-mermaid-errored {
+  border-color: #d1242f;
+}
+/* Error note placed alongside the source so it survives the next rerender. */
+.md-content .md-mermaid-error-note {
+  color: #d1242f;
+  font-size: 0.85em;
+  margin: 0.25em 0 1em;
+  padding: 0.4em 0.6em;
+  border-left: 3px solid #d1242f;
+  background: rgba(209, 36, 47, 0.06);
+}
 
 /* Image lightbox */
 .md-lightbox {
