@@ -38,6 +38,13 @@
   // Sidebar mode + width live in sessionStorage, which the browser scopes to
   // the tab for us — no plumbing, no cross-tab writes, no race on activation.
   let panel = $state<PanelKind>(untrack(() => readTabPanel()))
+  // Snapshot of the panel that was visible before the user opened settings.
+  // Used so a second click on the settings button restores the prior state
+  // (outline ↔ settings ↔ folder ↔ settings) instead of closing the sidebar.
+  // Not persisted: a refresh starts with a fresh snapshot. Toolbar only mounts
+  // when panel !== null (see md-side {#if panel} below), so this is always
+  // 'folder' or 'outline' in practice — never null.
+  let prevPanelBeforeSettings = $state<PanelKind | null>(null)
   let sideWidthState = $state<number>(untrack(() => readTabSideWidth(SIDE_WIDTH_DEFAULT)))
   let html = $state('')
   let headings = $state<Heading[]>([])
@@ -218,6 +225,28 @@
   }
 
   function selectPanel(next: PanelKind) {
+    // Second click on settings: restore the panel that was visible before
+    // settings was opened (the second `selectPanel` recursion lands in the
+    // non-settings branch below, which clears filterOpen and the snapshot).
+    // The snapshot is normally guaranteed by the storage.ts contract that
+    // refuses to persist 'settings', but this defensive no-op covers any
+    // future change that could leave it empty (e.g. someone re-introducing
+    // a storage path that lands on settings).
+    if (next === 'settings' && panel === 'settings') {
+      const restore = prevPanelBeforeSettings
+      prevPanelBeforeSettings = null
+      if (restore == null) return
+      selectPanel(restore)
+      return
+    }
+    // Entering settings: capture the current panel so we can return to it.
+    // Leaving settings on any other path (click another tab, collapse button)
+    // drops the snapshot so it doesn't leak into the next session.
+    if (next === 'settings') {
+      if (panel !== 'settings') prevPanelBeforeSettings = panel
+    } else {
+      prevPanelBeforeSettings = null
+    }
     if (next !== 'outline') filterOpen = false
     panel = next
     writeTabPanel(next)

@@ -27,6 +27,15 @@
       onToggleFilter()
       return
     }
+    // Settings is special: a second click on an already-active settings tab
+    // should restore the panel that was visible before settings was opened
+    // (folder or outline), not collapse the whole sidebar. We forward the
+    // raw key so the App-level handler can compare against its own snapshot.
+    // All other panels keep the toggle-to-null behaviour.
+    if (key === 'settings') {
+      onSelect('settings')
+      return
+    }
     onSelect(panel === key ? null : key)
   }
 
