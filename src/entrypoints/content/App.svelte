@@ -18,6 +18,7 @@
     type PanelKind,
     type Settings,
   } from '../../lib/storage'
+  import { nextPanelState, type PanelState } from '../../lib/panel-state'
   import { createRenderer } from '../../lib/render'
   import { wirePagePlugins } from '../../lib/page-plugins'
   import { renderMermaid } from '../../lib/mermaid'
@@ -35,16 +36,20 @@
 
   let raw = $state.raw(untrack(() => initialRaw))
   let settings = $state.raw(untrack(() => initialSettings))
-  // Sidebar mode + width live in sessionStorage, which the browser scopes to
-  // the tab for us — no plumbing, no cross-tab writes, no race on activation.
-  let panel = $state<PanelKind>(untrack(() => readTabPanel()))
-  // Snapshot of the panel that was visible before the user opened settings.
-  // Used so a second click on the settings button restores the prior state
-  // (outline ↔ settings ↔ folder ↔ settings) instead of closing the sidebar.
-  // Not persisted: a refresh starts with a fresh snapshot. Toolbar only mounts
-  // when panel !== null (see md-side {#if panel} below), so this is always
-  // 'folder' or 'outline' in practice — never null.
-  let prevPanelBeforeSettings = $state<PanelKind | null>(null)
+  // Snapshot of the panel that was visible before the user opened settings,
+  // bundled with the live panel into a single state object so the rules live
+  // next to each other. Populated only when entering settings from
+  // folder/outline; cleared on every other transition (including leaving
+  // settings via another tab). See panel-state.ts for the full rules and the
+  // defensive branches that cover stale states.
+  let panelState = $state<PanelState>({
+    current: untrack(() => readTabPanel()),
+    prevBeforeSettings: null,
+  })
+  // `panel` is a thin derived alias so the template can keep reading it as a
+  // plain value. All mutations go through `panelState` (via `selectPanel`)
+  // so the state-machine rules have a single source of truth.
+  let panel = $derived<PanelKind>(panelState.current)
   let sideWidthState = $state<number>(untrack(() => readTabSideWidth(SIDE_WIDTH_DEFAULT)))
   let html = $state('')
   let headings = $state<Heading[]>([])
@@ -225,31 +230,10 @@
   }
 
   function selectPanel(next: PanelKind) {
-    // Second click on settings: restore the panel that was visible before
-    // settings was opened (the second `selectPanel` recursion lands in the
-    // non-settings branch below, which clears filterOpen and the snapshot).
-    // The snapshot is normally guaranteed by the storage.ts contract that
-    // refuses to persist 'settings', but this defensive no-op covers any
-    // future change that could leave it empty (e.g. someone re-introducing
-    // a storage path that lands on settings).
-    if (next === 'settings' && panel === 'settings') {
-      const restore = prevPanelBeforeSettings
-      prevPanelBeforeSettings = null
-      if (restore == null) return
-      selectPanel(restore)
-      return
-    }
-    // Entering settings: capture the current panel so we can return to it.
-    // Leaving settings on any other path (click another tab, collapse button)
-    // drops the snapshot so it doesn't leak into the next session.
-    if (next === 'settings') {
-      if (panel !== 'settings') prevPanelBeforeSettings = panel
-    } else {
-      prevPanelBeforeSettings = null
-    }
-    if (next !== 'outline') filterOpen = false
-    panel = next
-    writeTabPanel(next)
+    const { state, clearsFilter } = nextPanelState(panelState, next)
+    if (clearsFilter) filterOpen = false
+    panelState = state
+    writeTabPanel(state.current)
   }
 
   function toggleFilter() {

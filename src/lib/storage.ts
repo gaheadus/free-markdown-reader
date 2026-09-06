@@ -31,13 +31,13 @@ export function readTabPanel(): PanelKind {
     const v = sessionStorage.getItem(TAB_PANEL_KEY)
     if (v === null) return 'outline'
     if (v === 'none') return null
-    if (v && TAB_PANEL_KINDS.has(v)) return v as PanelKind
     // 'settings' is intentionally never restored on a fresh page load: the
     // settings panel is a transient tool, not a tab state users expect to
     // come back to. Restoring it would leave the snapshot empty, so a second
     // click on the settings button would be a no-op (silently "broken").
     // A refresh always lands on the outline instead.
     if (v === 'settings') return 'outline'
+    if (v && TAB_PANEL_KINDS.has(v)) return v as PanelKind
   } catch {
     /* sessionStorage can throw in locked-down contexts (e.g. file:// with
        strict storage partitioning on some Chrome builds). */

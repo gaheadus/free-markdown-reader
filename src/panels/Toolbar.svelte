@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { PanelKind } from '../lib/storage'
   import { t, type Lang } from '../lib/i18n'
+  import { toolbarAction, isToolbarActive, type ToolbarKey } from './toolbar-actions'
 
   type Props = {
     panel: PanelKind
@@ -11,10 +12,6 @@
   }
   let { panel, lang, filterOpen = false, onSelect, onToggleFilter }: Props = $props()
 
-  // `search` is a filter overlay on the outline, not a real PanelKind — keep
-  // it as a string literal here so we can render its button alongside the
-  // panel tabs without widening the public PanelKind enum.
-  type ToolbarKey = Exclude<PanelKind, null> | 'search'
   const items: Array<{ key: ToolbarKey; icon: string; i18nKey: string }> = [
     { key: 'folder',   icon: '\u{1F4C1}', i18nKey: 'panel.folder' },
     { key: 'outline',  icon: '☰',           i18nKey: 'panel.outline' },
@@ -23,26 +20,12 @@
   ]
 
   function click(key: ToolbarKey) {
-    if (key === 'search') {
+    const action = toolbarAction(key, panel)
+    if (action.kind === 'toggleFilter') {
       onToggleFilter()
       return
     }
-    // Settings is special: a second click on an already-active settings tab
-    // should restore the panel that was visible before settings was opened
-    // (folder or outline), not collapse the whole sidebar. We forward the
-    // raw key so the App-level handler can compare against its own snapshot.
-    // All other panels keep the toggle-to-null behaviour.
-    if (key === 'settings') {
-      onSelect('settings')
-      return
-    }
-    onSelect(panel === key ? null : key)
-  }
-
-  function isActive(key: ToolbarKey): boolean {
-    // Search is a filter overlay on the outline, not its own tab.
-    if (key === 'search') return false
-    return panel === key
+    onSelect(action.next)
   }
 </script>
 
@@ -51,7 +34,7 @@
     <button
       type="button"
       data-tool={item.key}
-      class:is-active={isActive(item.key)}
+      class:is-active={isToolbarActive(item.key, panel)}
       title={t(lang, item.i18nKey)}
       aria-label={t(lang, item.i18nKey)}
       aria-pressed={item.key === 'search' ? filterOpen : panel === item.key}
