@@ -3,7 +3,6 @@
   import Toolbar from '../../panels/Toolbar.svelte'
   import OutlinePanel from '../../panels/OutlinePanel.svelte'
   import FolderPanel from '../../panels/FolderPanel.svelte'
-  import SearchPanel from '../../panels/SearchPanel.svelte'
   import SettingsPanel from '../../panels/SettingsPanel.svelte'
   import {
     onSettingsChanged,
@@ -46,6 +45,9 @@
   // Derived "live" width: the drag preview while dragging, otherwise the
   // persisted width from settings.
   let sideWidth = $derived(draggingWidth ?? settings.sideWidth)
+
+  // Filter overlays the outline tree; it is not a separate panel.
+  let filterOpen = $state(false)
 
   // Monospace code glyph for the raw/preview toggle button.
   const RAW_ICON = '</>'
@@ -150,7 +152,7 @@
   function applyCommand(cmd: BroadcastCommand) {
     switch (cmd) {
       case 'toggle-panel':
-        patchSettings({ panel: settings.panel ? null : 'outline' })
+        selectPanel(settings.panel ? null : 'outline')
         break
       case 'toggle-centered':
         patchSettings({ centered: !settings.centered })
@@ -171,6 +173,20 @@
 
   function patchSettings(p: Partial<Settings>) {
     void setSettings(p)
+  }
+
+  function selectPanel(next: PanelKind) {
+    if (next !== 'outline') filterOpen = false
+    void setSettings({ panel: next })
+  }
+
+  function toggleFilter() {
+    if (settings.panel !== 'outline') {
+      filterOpen = true
+      void setSettings({ panel: 'outline' })
+      return
+    }
+    filterOpen = !filterOpen
   }
 
   // ====== Sidebar resize (drag the right edge) ======
@@ -224,23 +240,23 @@
         <Toolbar
           panel={settings.panel}
           lang={settings.language}
-          onSelect={(p: PanelKind) => patchSettings({ panel: p })}
+          {filterOpen}
+          onSelect={selectPanel}
+          onToggleFilter={toggleFilter}
         />
         <button
           type="button"
           class="md-side-close"
           title={t(settings.language, 'panel.collapse')}
           aria-label={t(settings.language, 'panel.collapse')}
-          onclick={() => patchSettings({ panel: null })}
+          onclick={() => selectPanel(null)}
         >{t(settings.language, 'panel.collapseSymbol')}</button>
       </div>
-      <div class="md-panel" class:md-panel-search={settings.panel === 'search'}>
+      <div class="md-panel" class:md-panel-filter={filterOpen && settings.panel === 'outline'}>
         {#if settings.panel === 'folder'}
           <FolderPanel lang={settings.language} />
         {:else if settings.panel === 'outline'}
-          <OutlinePanel {headings} lang={settings.language} contentRoot={contentRoot} />
-        {:else if settings.panel === 'search'}
-          <SearchPanel {headings} lang={settings.language} />
+          <OutlinePanel {headings} lang={settings.language} contentRoot={contentRoot} {filterOpen} />
         {:else if settings.panel === 'settings'}
           <SettingsPanel {settings} onPatch={patchSettings} />
         {/if}
@@ -267,7 +283,7 @@
       title={t(settings.language, 'panel.expand')}
       aria-label={t(settings.language, 'panel.expand')}
       aria-pressed={!!settings.panel}
-      onclick={() => patchSettings({ panel: settings.panel ? null : 'outline' })}
+      onclick={() => selectPanel(settings.panel ? null : 'outline')}
     >{t(settings.language, 'panel.expandSymbol')}</button>
     <button
       type="button"

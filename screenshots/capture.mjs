@@ -199,12 +199,12 @@ async function main() {
   await sleep(400)
   await shot('diagram.png')
 
-  // Search panel with a live query + highlights (light). Last, because the
-  // <mark> highlights it injects persist in the DOM after the panel closes.
-  await applySettings(mk({ theme: 'light', panel: 'search' }))
-  await page.waitForSelector('.md-search input', { timeout: 8000 })
-  await page.fill('.md-search input', 'Markdown')
-  await page.press('.md-search input', 'Enter')
+  // Outline filter (search icon overlays Filter on the TOC tree).
+  await applySettings(mk({ theme: 'light', panel: 'outline' }))
+  await page.waitForSelector('.md-outline', { timeout: 8000 })
+  await page.click('[data-tool="search"]')
+  await page.waitForSelector('.md-search-bar input', { timeout: 8000 })
+  await page.fill('.md-search-bar input', 'Markdown')
   await sleep(400)
   await page.evaluate(() => window.scrollTo(0, 0))
   await shot('search.png')

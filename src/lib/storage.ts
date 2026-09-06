@@ -101,6 +101,7 @@ function mergeDefaults(raw: Settings | null): Settings {
     ...DEFAULT_SETTINGS,
     ...raw,
     sideWidth: sw,
+    ...(raw.panel === 'search' ? { panel: 'outline' as const } : {}),
     mdPlugins: { ...DEFAULT_SETTINGS.mdPlugins, ...(raw.mdPlugins ?? {}) },
   }
 }

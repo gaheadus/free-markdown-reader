@@ -4,19 +4,26 @@
 
   type Heading = { id: string; level: number; text: string }
   type OutlineNode = Heading & { children: OutlineNode[]; parentId: string | null }
+  type HighlightPart = { text: string; hit: boolean }
 
   type Props = {
     headings: Heading[]
     lang: Lang
     /** Container element holding the rendered headings, for scroll-spy. */
     contentRoot?: HTMLElement | null
+    /** When true, show the Filter input above the same TOC tree. */
+    filterOpen?: boolean
   }
-  let { headings, lang, contentRoot = null }: Props = $props()
+  let { headings, lang, contentRoot = null, filterOpen = false }: Props = $props()
 
   let activeId = $state<string | null>(null)
   let listEl: HTMLUListElement | null = $state(null)
+  let inputEl: HTMLInputElement | null = $state(null)
+  let q = $state('')
   let collapsedIds = $state<Set<string>>(new Set())
   let tree = $derived(buildTree(headings))
+  let query = $derived(q.trim())
+  let displayTree = $derived(filterTree(tree, query))
   let expandableIds = $derived(collectExpandableIds(tree))
   let allCollapsed = $derived(
     expandableIds.length > 0 && expandableIds.every((id) => collapsedIds.has(id)),
@@ -56,6 +63,16 @@
       block: 'nearest',
       behavior: isPanelFocused ? 'auto' : 'smooth',
     })
+  })
+
+  $effect(() => {
+    if (!filterOpen) {
+      q = ''
+      return
+    }
+    // Toolbar click leaves focus on the search button; defer past that event.
+    const id = window.setTimeout(() => inputEl?.focus(), 0)
+    return () => clearTimeout(id)
   })
 
   function jump(ev: MouseEvent, id: string) {
@@ -128,32 +145,82 @@
     }
     return roots
   }
+
+  /** Keep matching headings and their ancestors so the TOC tree stays intact. */
+  function filterTree(nodes: OutlineNode[], needle: string): OutlineNode[] {
+    if (!needle) return nodes
+    const lower = needle.toLowerCase()
+    const keep = (node: OutlineNode): OutlineNode | null => {
+      const children = node.children.map(keep).filter((n): n is OutlineNode => n !== null)
+      if (node.text.toLowerCase().includes(lower) || children.length > 0) {
+        return { ...node, children }
+      }
+      return null
+    }
+    return nodes.map(keep).filter((n): n is OutlineNode => n !== null)
+  }
+
+  function splitHighlight(text: string, needle: string): HighlightPart[] {
+    if (!needle) return [{ text, hit: false }]
+    const hay = text.toLowerCase()
+    const find = needle.toLowerCase()
+    const parts: HighlightPart[] = []
+    let i = 0
+    while (i < text.length) {
+      const at = hay.indexOf(find, i)
+      if (at === -1) {
+        parts.push({ text: text.slice(i), hit: false })
+        break
+      }
+      if (at > i) parts.push({ text: text.slice(i, at), hit: false })
+      parts.push({ text: text.slice(at, at + needle.length), hit: true })
+      i = at + needle.length
+    }
+    return parts
+  }
 </script>
 
-<div class="md-outline-head">
-  <h2>{t(lang, 'panel.outline')}</h2>
-  {#if tree.length > 0}
-    <button
-      type="button"
-      class="md-outline-bulk"
-      title={allCollapsed ? t(lang, 'outline.expandAll') : t(lang, 'outline.collapseAll')}
-      aria-label={allCollapsed ? t(lang, 'outline.expandAll') : t(lang, 'outline.collapseAll')}
-      onclick={() => (allCollapsed ? expandAll() : collapseAll())}
-    >{allCollapsed ? t(lang, 'outline.expandAll') : t(lang, 'outline.collapseAll')}</button>
+{#if filterOpen}
+  <div class="md-search-bar">
+    <input
+      bind:this={inputEl}
+      type="search"
+      bind:value={q}
+      placeholder={t(lang, 'search.placeholder')}
+      autocomplete="off"
+      aria-label={t(lang, 'search.placeholder')}
+    />
+  </div>
+{:else}
+  <div class="md-outline-head">
+    <h2>{t(lang, 'panel.outline')}</h2>
+    {#if tree.length > 0}
+      <button
+        type="button"
+        class="md-outline-bulk"
+        title={allCollapsed ? t(lang, 'outline.expandAll') : t(lang, 'outline.collapseAll')}
+        aria-label={allCollapsed ? t(lang, 'outline.expandAll') : t(lang, 'outline.collapseAll')}
+        onclick={() => (allCollapsed ? expandAll() : collapseAll())}
+      >{allCollapsed ? t(lang, 'outline.expandAll') : t(lang, 'outline.collapseAll')}</button>
+    {/if}
+  </div>
+{/if}
+<div class="md-outline-scroll">
+  {#if headings.length === 0}
+    <div class="md-warning">{t(lang, 'outline.empty')}</div>
+  {:else if query && displayTree.length === 0}
+    <div class="md-warning">{t(lang, 'search.noMatches')}</div>
+  {:else}
+    <ul class="md-outline" bind:this={listEl}>
+      {#each displayTree as node (node.id)}
+        {@render outlineNode(node)}
+      {/each}
+    </ul>
   {/if}
 </div>
-{#if headings.length === 0}
-  <div class="md-warning">{t(lang, 'outline.empty')}</div>
-{:else}
-  <ul class="md-outline" bind:this={listEl}>
-    {#each tree as node (node.id)}
-      {@render outlineNode(node)}
-    {/each}
-  </ul>
-{/if}
 
 {#snippet outlineNode(node: OutlineNode)}
-  {@const isCollapsed = collapsedIds.has(node.id)}
+  {@const isCollapsed = !query && collapsedIds.has(node.id)}
   <li
     data-id={node.id}
     data-level={node.level}
@@ -182,7 +249,15 @@
       {:else}
         <span class="md-outline-toggle-spacer" aria-hidden="true"></span>
       {/if}
-      <a href={`#${node.id}`} onclick={(e) => jump(e, node.id)}>{node.text}</a>
+      <a href={`#${node.id}`} onclick={(e) => jump(e, node.id)}>
+        {#if query}
+          {#each splitHighlight(node.text, query) as part, i}
+            {#if part.hit}<mark class="md-outline-hit">{part.text}</mark>{:else}{part.text}{/if}
+          {/each}
+        {:else}
+          {node.text}
+        {/if}
+      </a>
     </div>
     {#if node.children.length > 0 && !isCollapsed}
       <ul>

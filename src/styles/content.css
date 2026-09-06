@@ -428,6 +428,52 @@ body.mdr-active > pre {
 .md-outline li[data-level='5'] > .md-outline-row { padding-left: 32px; }
 .md-outline li[data-level='6'] > .md-outline-row { padding-left: 40px; }
 
+.md-outline-hit {
+  color: #e67700;
+  background: transparent;
+  font-weight: 700;
+  padding: 0;
+}
+
+/* Filter input sits above the same TOC tree; the list remains the scroller. */
+.md-panel.md-panel-filter {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 8px;
+}
+
+.md-search-bar {
+  flex: 0 0 auto;
+  padding: 0 0 8px;
+}
+
+.md-search-bar input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--mdr-border);
+  background: var(--mdr-bg);
+  color: var(--mdr-fg);
+  font-size: 13px;
+}
+
+.md-search-bar input:focus {
+  outline: none;
+  border-color: var(--mdr-accent);
+}
+
+.md-outline-scroll {
+  min-width: 0;
+}
+
+.md-panel.md-panel-filter .md-outline-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* Folder list */
 
 .md-folder {
@@ -470,54 +516,6 @@ body.mdr-active > pre {
 
 .md-folder li.is-current .icon {
   color: var(--mdr-accent);
-}
-
-.md-panel.md-panel-search {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  padding-top: 0;
-}
-
-.md-panel.md-panel-search .md-search-self {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.md-panel.md-panel-search .md-search-results {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.md-panel.md-panel-search .md-search-bar {
-  flex: 0 0 auto;
-  padding: 0 8px 8px;
-}
-
-.md-panel.md-panel-search .md-search-bar input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--mdr-border);
-  background: var(--mdr-bg);
-  color: var(--mdr-fg);
-  font-size: 13px;
-}
-
-/* Search panel — the result list is the only scrolling region. */
-.md-search-self {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.md-search-results .md-outline {
-  padding: 0 8px;
 }
 
 mark.md-hit.md-hit-active {
