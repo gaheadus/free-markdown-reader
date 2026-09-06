@@ -82,8 +82,16 @@ pnpm build           # writes dist/chrome-mv3
 ```sh
 pnpm dev             # live-reloading dev build under dist/chrome-mv3
 pnpm check           # svelte-check + tsc
+pnpm test            # vitest run (one-shot)
+pnpm test:watch      # vitest watch mode
 pnpm zip             # produce installable zip
 ```
+
+Tests are pure-logic only — they cover the sidebar panel state machine
+(`src/lib/panel-state.ts`) and the `sessionStorage` contract that powers
+it (`src/lib/storage.ts`'s `readTabPanel` / `writeTabPanel`). No browser
+shims, no jsdom; runs in ~250 ms. Add new tests next to the module they
+cover as `*.test.ts`.
 
 ## How it works
 
